@@ -1,0 +1,219 @@
+-- Creating tables
+Create Table Teams (
+TeamName varchar(30) Primary Key Not NULL,
+Groupin varchar(10),
+TeamRanking int 
+)
+
+Create Table Winners(
+TeamName varchar(30) foreign key references Teams,
+WinnerYear smallDateTime Primary key Not Null
+)
+
+Create Table Runners(
+TeamName varchar(30) foreign key references Teams,
+RunnerYear smallDateTime Primary key Not Null
+)
+
+Create Table Players(
+PlayerName varchar(30) Primary key NOT NULL,
+TeamName varchar(30) foreign key references Teams,
+Role varchar(20)
+)
+
+Create Table Worldcupinf (
+Year smallDateTime Primary Key,
+TeamName varchar(30) foreign key references Teams,
+MVP varchar(30) foreign key references Players
+)
+
+-- Inserting Values into the tables: 
+
+Insert into Teams Values 
+( 'Australia' ,'Group-A' , 6) ,
+('England' , 'Group -A ', 2) , 
+('India' , 'Group-B' , 1),
+('South Africa' , 'Group-B' ,4) ,
+('Pakistan' , 'Group-B' , 3),
+('New Zeland' , 'Group-A' ,5),
+('Sri Lanka' , 'Group-A', 8),
+('West Indies' , 'Group-B',7)
+
+
+Insert into Winners Values 
+('West Indies','1975'),
+('West Indies','1979'),
+('India' , '1983'),
+('Australia' , '1987'),
+('Pakistan' , '1992'),
+('Sri Lanka' , '1996'),
+('Australia' , '1999'),
+('Australia' , '2003'),
+('Australia' , '2007'),
+('India' , '2011'),
+('Australia' , '2015'),
+('England' , '2019')
+
+
+Insert into Runners Values 
+('Australia','1975'),
+('England','1979'),
+('West Indies' , '1983'),
+('England' , '1987'),
+('England' , '1992'),
+('Australia' , '1996'),
+('Pakistan' , '1999'),
+('India' , '2003'),
+('Sri Lanka' , '2007'),
+('Sri Lanka' , '2011'),
+('New Zeland' , '2015'),
+('New Zeland' , '2019')
+
+
+--Insert into Players values 
+
+('Mohammed Rizwan' , 'Pakistan' , 'Batsmen'),
+('Surya Kumar Yadav' , 'India' , 'Batsmen'),
+('Virat Kholi' , 'India' , 'Batsmen'),
+('Babar Azar' , 'Pakistan' , 'Batsmen'),
+('Mathew Wade' , 'Australia' , 'Wk-Batsmen'),
+('Ravindra Jadeja' , 'India' , 'All-Rounder'),
+('Glenn Maxwell' , 'Australia' ,'All-Rounder'),
+('Ben Strokes' , 'England' , 'All-Rounder'),
+('Shaheen Afridi' , 'Pakistan' , 'Bowler'),
+('Mitchell Starc' , 'Australia' ,'Bowler'),
+('Bhuvaneshwar Kumar' , 'India' , 'Bowler');
+
+
+--Insert Into Worldcupinf Values 
+
+('2011', 'India', 'Virat Kholi'),
+('2013' , 'Australia' , 'Glenn Maxwell'),
+('2015' ,'Australia', 'Mitchell Starc'),
+('2016' , 'India', 'Virat Kholi'),
+('2019' , 'England' , 'Ben Strokes'),
+('2021' , 'India' , 'Surya Kumar Yadav');
+
+--DDL and DML statements:
+
+Select * from Teams Order By TeamRanking ;
+Select * from Winners Order By WinnerYear;
+Select * from Runners Order By RunnerYear;
+Select * from Players order by Role;
+Select * from Worldcupinf;
+
+
+Drop table Teams;
+Drop Table Winners;
+Drop Table Runners;
+Drop table Players;
+
+
+Update Teams set TeamRanking = 10 where TeamName = 'Westindies';
+Delete from Teams where TeamName = 'Westindies';
+
+
+-- Additional Constraints:
+
+
+-- Procedures:
+
+Create Proc MVPWorldcupinf
+As
+Begin 
+Select MVP from Worldcupinf where Year >'2015 '
+End
+
+Exec MVPWorldcupinf;
+
+CREATE PROC WinPred
+@TeamName VARCHAR(30)=NULL,
+@TeamRanking int=NULL
+AS
+IF @TeamName IS NULL
+SELECT @TeamName =TeamName FROM Teams
+IF @TeamRanking IS NULL OR @TeamRanking =0
+SELECT @TeamRanking =Min(TeamRanking)FROM Teams
+
+SELECT Players.TeamName,PlayerName From Players Join Teams 
+ON Players.TeamName = Teams.TeamName
+WHERE TeamRanking <2
+
+EXEC WinPred;
+
+Create Proc Roles
+@PlayerName VARCHAR(30) = NULL,
+@Role VARCHAR(30) = NULL
+As
+Begin
+IF @PlayerName = NULL
+SELECT @PlayerName = PlayerName ,@Role = Role from Players where Players.PlayerName = Players.Role
+END
+
+EXEC Roles;
+
+-- Triggers:
+
+Create trigger trInsert
+On Teams
+For Insert        
+AS                 
+declare @TeamRanking Int;            
+declare @Groupin Varchar(30);
+declare @TeamName Varchar(30);
+declare @description Varchar(30);
+select @TeamRanking = i.TeamRanking From inserted As i; 
+select @TeamName = i.TeamName From inserted As i;
+Select @Groupin = i.Groupin From inserted As i;
+set @description ='New Team Entry Triggered'
+Insert Into Archive              
+(TeamRanking, TeamName, Groupin, description, timestamp)
+VALUES
+(@TeamRanking,@TeamName,@Groupin, @description, getdate() ); 
+Print 'New Team Entry Triggered'
+Insert into Teams Values ('Afghanistan' , 'Group-B', 9);
+Create trigger trUpdate
+On Teams
+For Update        
+AS                 
+declare @TeamRanking Int;            
+declare @Groupin Varchar(30);
+declare @TeamName Varchar(30);
+declare @description Varchar(30);
+select @TeamRanking = i.TeamRanking From inserted As i; 
+select @TeamName = i.TeamName From inserted As i;
+Select @Groupin = i.Groupin From inserted As i;
+set @description ='New Team Entry Triggered'
+If update(TeamRanking)
+set @description ='Team Ranking Updated';  
+ELSE
+Print 'Error, no coloum found';
+
+Print ' Cannot go below 1';
+
+Insert Into Archive              
+(TeamRanking, TeamName, Groupin, description, timestamp)
+VALUES
+(@TeamRanking,@TeamName,@Groupin, @description, getdate() ); 
+Print 'Team Ranking Updated'
+
+
+Update Teams set TeamRanking = 9 where TeamName='West Indies';
+Create Trigger trDelete
+On Teams
+After DELETE
+AS
+declare @TeamRanking Int;            
+declare @Groupin Varchar(30);
+declare @TeamName Varchar(30);
+declare @description Varchar(30);
+select @TeamRanking = d.TeamRanking From deleted As d; 
+select @TeamName = d.TeamName From deleted As d;
+Select @Groupin = d.Groupin From deleted As d;
+set @description ='Deletion trigger'
+Insert Into Archive              
+(TeamRanking, TeamName, Groupin, description, timestamp)
+VALUES
+(@TeamRanking,@TeamName,@Groupin, @description, getdate() ); 
+Print 'Team Deletion Triggered'
+delete from Teams where TeamRanking =9;
